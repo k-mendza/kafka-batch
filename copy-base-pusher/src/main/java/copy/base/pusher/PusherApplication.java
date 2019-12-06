@@ -1,13 +1,13 @@
-package copy.base.fetcher;
+package copy.base.pusher;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class CopyBaseFetcherApplication {
+public class PusherApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(CopyBaseFetcherApplication.class, args);
+        SpringApplication.run(PusherApplication.class, args);
     }
 
 }
