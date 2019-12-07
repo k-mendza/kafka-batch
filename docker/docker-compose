@@ -4,6 +4,7 @@ services:
   source-db:
     image: postgres
     restart: always
+#    DO NOT USE VOLUMES ON WINDOWS  #PROBLEMS !!!
 #    volumes:
 #      - ./postgres-source:/var/lib/postgresql/data
     environment:
@@ -15,6 +16,7 @@ services:
   target-db:
     image: postgres
     restart: always
+#    DO NOT USE VOLUMES ON WINDOWS  #PROBLEMS !!!
 #    volumes:
 #      - ./postgres-target:/var/lib/postgresql/data
     environment:

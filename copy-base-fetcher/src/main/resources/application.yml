@@ -1,0 +1,9 @@
+server:
+  port: 8080
+# Connection to original data
+spring:
+  datasource:
+    url: 'jdbc:postgresql://localhost:5533/postgres'
+    username: postgres
+    password: password
+    initialization-mode: always

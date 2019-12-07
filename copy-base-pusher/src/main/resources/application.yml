@@ -1,0 +1,9 @@
+server:
+  port: 8081
+# Connection to database where copy of data will be stored:
+spring:
+  datasource:
+    url: 'jdbc:postgresql://localhost:5544/postgres'
+    username: postgres
+    password: password
+    initialization-mode: always
