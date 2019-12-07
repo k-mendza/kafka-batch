@@ -1,0 +1,49 @@
+version: '2.1'
+
+services:
+  source-db:
+    image: postgres
+    restart: always
+#    volumes:
+#      - ./postgres-source:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: password
+    ports:
+    - '5533:5432'
+    networks:
+      - 'net'
+  target-db:
+    image: postgres
+    restart: always
+#    volumes:
+#      - ./postgres-target:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: password
+    ports:
+      - '5544:5432'
+    networks:
+      - 'net'
+  zookeeper:
+    container_name: cluster_zookeeper
+    image: wurstmeister/zookeeper
+    ports:
+      - "2181:2181"
+    networks:
+      - 'net'
+  kafka:
+    container_name: cluster_kafka
+    image: wurstmeister/kafka
+    hostname: cluster_kafka
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: cluster_kafka
+#      KAFKA_CREATE_TOPICS: "test:1:1"
+      KAFKA_ZOOKEEPER_CONNECT: cluster_zookeeper:2181
+    ports:
+      - "9092:9092"
+    networks:
+      - 'net'
+    depends_on:
+      - zookeeper
+networks:
+  net:
+
