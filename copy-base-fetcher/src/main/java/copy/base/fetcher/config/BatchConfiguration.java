@@ -1,27 +1,27 @@
 package copy.base.fetcher.config;
 
-import copy.base.fetcher.domain.*;
+import copy.base.fetcher.domain.Client;
+import copy.base.fetcher.domain.ClientRowMapper;
+import copy.base.fetcher.domain.ClientUpperCaseProcessor;
+import lombok.AllArgsConstructor;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
-import org.springframework.batch.item.database.BeanPropertyItemSqlParameterSourceProvider;
-import org.springframework.batch.item.database.JdbcBatchItemWriter;
 import org.springframework.batch.item.database.JdbcCursorItemReader;
-import org.springframework.batch.item.database.builder.JdbcBatchItemWriterBuilder;
 import org.springframework.batch.item.database.builder.JdbcCursorItemReaderBuilder;
-import org.springframework.batch.item.file.FlatFileItemReader;
-import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.batch.item.kafka.KafkaItemWriter;
+import org.springframework.batch.item.kafka.builder.KafkaItemWriterBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.ClassPathResource;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import javax.sql.DataSource;
 
 @Configuration
+@AllArgsConstructor
 public class BatchConfiguration {
     public static final int CHUNK_SIZE = 2048;
     public static final int CORE_POOL_SIZE = 4;
@@ -30,23 +30,7 @@ public class BatchConfiguration {
     public final JobBuilderFactory jobBuilderFactory;
     public final StepBuilderFactory stepBuilderFactory;
     public final DataSource dataSource;
-
-    public BatchConfiguration(JobBuilderFactory jobBuilderFactory, StepBuilderFactory stepBuilderFactory, DataSource dataSource) {
-        this.jobBuilderFactory = jobBuilderFactory;
-        this.stepBuilderFactory = stepBuilderFactory;
-        this.dataSource = dataSource;
-    }
-
-    @Bean
-    public ColumnRangePartitioner partitioner() {
-        ColumnRangePartitioner columnRangePartitioner = new ColumnRangePartitioner();
-
-        columnRangePartitioner.setColumn("id");
-        columnRangePartitioner.setTable("client");
-        columnRangePartitioner.setDataSource(dataSource);
-
-        return columnRangePartitioner;
-    }
+    public final KafkaTemplate<Long, Client> kafkaTemplate;
 
     @Bean
     public JdbcCursorItemReader<Client> cursorItemReader() {
@@ -59,34 +43,15 @@ public class BatchConfiguration {
     }
 
     @Bean
-    public FlatFileItemReader<Client> fileReader() {
-        return new FlatFileItemReaderBuilder<Client>()
-                .name("clientItemReader")
-                .resource(new ClassPathResource("clients_50k.csv"))
-                .delimited()
-                .names(new String[]{"id", "firstName", "lastName", "email", "phone"})
-                .fieldSetMapper(fieldSet -> {
-                    Client client = new Client();
-                    client.setId(fieldSet.readLong("id"));
-                    client.setFirstName(fieldSet.readString("firstName"));
-                    client.setLastName(fieldSet.readString("lastName"));
-                    client.setEmail(fieldSet.readString("email"));
-                    client.setPhone(fieldSet.readString("phone"));
-                    return client;
-                }).build();
-    }
-
-    @Bean
     public ClientUpperCaseProcessor upperCaseProcessor() {
         return new ClientUpperCaseProcessor();
     }
 
     @Bean
-    public JdbcBatchItemWriter<Client> dataSourceWriter() {
-        return new JdbcBatchItemWriterBuilder<Client>()
-                .itemSqlParameterSourceProvider(new BeanPropertyItemSqlParameterSourceProvider<>())
-                .sql("INSERT INTO client (id, firstName, lastName, email, phone) VALUES (:id, :firstName, :lastName, :email, :phone)")
-                .dataSource(dataSource)
+    public KafkaItemWriter<Long, Client> kafkaItemWriter() {
+        return new KafkaItemWriterBuilder<Long, Client>()
+                .kafkaTemplate(this.kafkaTemplate)
+                .itemKeyMapper(Client::getId)
                 .build();
     }
 
@@ -100,7 +65,7 @@ public class BatchConfiguration {
     }
 
     @Bean
-    public Step step1(@Qualifier("dataSourceWriter") JdbcBatchItemWriter<Client> writer) {
+    public Step step1() {
         ThreadPoolTaskExecutor taskExecutor = new ThreadPoolTaskExecutor();
         taskExecutor.setCorePoolSize(CORE_POOL_SIZE);
         taskExecutor.setMaxPoolSize(MAX_CORE_POOL_SIZE);
@@ -108,9 +73,9 @@ public class BatchConfiguration {
 
         return stepBuilderFactory.get("step1")
                 .<Client, Client>chunk(CHUNK_SIZE)
-                .reader(fileReader())
+                .reader(cursorItemReader())
                 .processor(upperCaseProcessor())
-                .writer(writer)
+                .writer(kafkaItemWriter())
                 .taskExecutor(taskExecutor)
                 .build();
     }

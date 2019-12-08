@@ -1,9 +1,24 @@
+# Server properties
 server:
   port: 8080
-# Connection to original data
+
 spring:
+  # Connection to original data
   datasource:
     url: 'jdbc:postgresql://localhost:5533/postgres'
     username: postgres
     password: password
     initialization-mode: always
+  # Kafka properties
+  kafka:
+    template:
+      default-topic: 'clients'
+    producer:
+      key-serializer: 'org.apache.kafka.common.serialization.LongSerializer'
+      value-serializer: 'org.springframework.kafka.support.serializer.JsonSerializer'
+      client-id: 'clients-client'
+    consumer:
+      key-deserializer: 'org.apache.kafka.common.serialization.LongDeserializer'
+      value-deserializer: 'org.springframework.kafka.support.serializer.JsonDeserializer'
+      group-id: 'clients-group'
+      properties.spring.json.trusted.packages: '*'

@@ -38,6 +38,8 @@ services:
     hostname: cluster_kafka
     environment:
       KAFKA_ADVERTISED_HOST_NAME: cluster_kafka
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://:9092,OUTSIDE://127.0.0.1:9092
+      KAFKA_LISTENERS: INSIDE://:9092,OUTSIDE://:9092
 #      KAFKA_CREATE_TOPICS: "test:1:1"
       KAFKA_ZOOKEEPER_CONNECT: cluster_zookeeper:2181
     ports:
