@@ -17,6 +17,7 @@ spring:
       key-serializer: 'org.apache.kafka.common.serialization.LongSerializer'
       value-serializer: 'org.springframework.kafka.support.serializer.JsonSerializer'
       client-id: 'clients-client'
+      bootstrap-servers: localhost:9092
     consumer:
       auto-offset-reset: earliest
       key-deserializer: 'org.apache.kafka.common.serialization.LongDeserializer'
